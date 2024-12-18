@@ -151,8 +151,7 @@ def get_width_height(filepath):
     
 async def get_thumbnail(video_file, output_directory, ttl):
     # https://stackoverflow.com/a/13891070/4723940
-    out_put_file_name = output_directory + \
-                        "/" + str(time.time()) + ".jpg"
+    out_put_file_name = str(time.time()) + ".jpg"
     file_genertor_command = [
         "ffmpeg",
         "-ss",
@@ -184,16 +183,18 @@ def get_duration(filepath):
     else:
       return 0   
 
-async def tg_upload(message,video,a):
+async def tg_upload(message,video,a,thumb):
     caption = f"{video}"
     start_time = time.time()
     duration = get_duration(video)
-    
-    thumb_path = f"thumbs/{message.chat.id}/{message.chat.id}.jpg"
-    if os.path.exists(thumb_path):
-        thumb = thumb_path
+    if thumb:
+        thumb = thumb
     else:
-        thumb = await get_thumbnail(video, "decrypted", duration / 4)
+        thumb_path = f"thumbs/{message.chat.id}/{message.chat.id}.jpg"
+        if os.path.exists(thumb_path):
+            thumb = thumb_path
+        else:
+            thumb = await get_thumbnail(video, "decrypted", duration / 4)
     file_size = os.stat(video).st_size
     if file_size > 2093796556 and file_size < 4294967296:
         await userbot.send_video(
@@ -355,20 +356,39 @@ async def download_playlist(bot, message: Message):
             for video_url in video_urls:
                 await a.edit(f"Video indiriliyor: {video_url}")
                 video = download_video(video_url,preferred_language)
-                await tg_upload(message,video,a)
+                id = video_url.split("watch?v=")[1]
+                t_url = f"https://i.ytimg.com/vi/{id}/maxresdefault.jpg"
+                try:
+                    c = f"wget {t_url} -O {id}.jpg"
+                    os.system(c)
+                    thumb = f"{id}.jpg"
+                except Exception as e:
+                    print(e)
+                    thumb = None
+                await tg_upload(message,video,a,thumb)
         elif "youtu" in playlist_url and "playlist" not in playlist_url:
             video_urls = []
             video_urls.append(playlist_url)
             for video_url in video_urls:
                 await a.edit(f"Video indiriliyor: {video_url}")
                 video = download_video(video_url, preferred_language)
-                await tg_upload(message,video,a)
+                id = video_url.split("watch?v=")[1]
+                t_url = f"https://i.ytimg.com/vi/{id}/maxresdefault.jpg"
+                try:
+                    c = f"wget {t_url} -O {id}.jpg"
+                    os.system(c)
+                    thumb = f"{id}.jpg"
+                except Exception as e:
+                    print(e)
+                    thumb = None
+                await tg_upload(message,video,a,thumb)
         else:
             if 1 == 1:
                 name = tt[1]
                 filename = download_m3u8_with_ytdlp(playlist_url, output_dir,name,a)
                 video = filename
-                await tg_upload(message,video,a)
+                thumb = None
+                await tg_upload(message,video,a,thumb)
             
         
         await a.edit("Başarıyla indirildi!")
